@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: userservice
+
+  # --- MySQL (local, Windows host) ---
+  datasource:
+    url: jdbc:mysql://172.30.32.1:3306/home_energy_tracker?sslMode=DISABLED&allowPublicKeyRetrieval=true
+    username: energy_app
+    password: EnergyApp_2026_Strong!
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  # --- Flyway (owns the schema; runs before Hibernate on every boot) ---
+  flyway:
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+
+  # --- JPA / Hibernate ---
+  jpa:
+    hibernate:
+      ddl-auto: validate   # Hibernate only CHECKS the schema, never changes it
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+server:
+  port: 8100
