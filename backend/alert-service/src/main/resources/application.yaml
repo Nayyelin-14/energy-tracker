@@ -1,0 +1,48 @@
+spring:
+  application:
+    name: alert-service
+
+  # Kafka consumer
+  kafka:
+    bootstrap-servers: localhost:9094
+    consumer:
+      group-id: alert-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      properties:
+        spring.json.trusted.packages: com.energytracker.kafka.event
+
+  # MySQL (local, Windows host)
+  datasource:
+    url: jdbc:mysql://172.30.32.1:3306/home_energy_tracker?sslMode=DISABLED&allowPublicKeyRetrieval=true
+    username: energy_app
+    password: EnergyApp_2026_Strong!
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  # JPA / Hibernate
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  # SMTP via Mailpit (docker compose)
+  mail:
+    host: localhost
+    port: 1025
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+
+app:
+  mail:
+    from: energy-tracker@example.com
+
+server:
+  port: 8102

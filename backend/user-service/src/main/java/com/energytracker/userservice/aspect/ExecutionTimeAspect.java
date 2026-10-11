@@ -1,4 +1,3 @@
-
 package com.energytracker.userservice.aspect;
 
 import java.util.concurrent.TimeUnit;
