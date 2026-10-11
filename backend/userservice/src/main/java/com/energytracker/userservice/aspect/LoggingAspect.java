@@ -13,7 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @Slf4j
 public class LoggingAspect {
-        @Pointcut("execution(* com.leetjourney.user_service.service.*.*(..))")
+        @Pointcut("execution(* com.energytracker.userservice.service.*.*(..))")
         public void serviceMethods() {
         }
 

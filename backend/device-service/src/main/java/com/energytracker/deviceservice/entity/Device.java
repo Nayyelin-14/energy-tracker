@@ -12,6 +12,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import com.energytracker.deviceservice.model.DeviceType;
+import com.energytracker.deviceservice.util.UniqueIdGenerator;
 
 @Entity
 @Table(name = "device", indexes = {
@@ -24,9 +25,9 @@ import com.energytracker.deviceservice.model.DeviceType;
 public class Device {
 
         @Id
-        @GeneratedValue(strategy = GenerationType.IDENTITY)
         @Column(name = "device_id", nullable = false)
-        private Long deviceId;
+        @Builder.Default
+        private Long deviceId = UniqueIdGenerator.nextId();
 
         @Column(name = "name", nullable = false)
         private String name;
@@ -39,7 +40,7 @@ public class Device {
         private String location;
 
         @Column(name = "user_id", nullable = false)
-        private String userId;
+        private Long userId;
 
         @CreationTimestamp
         @Column(name = "created_at", nullable = false)

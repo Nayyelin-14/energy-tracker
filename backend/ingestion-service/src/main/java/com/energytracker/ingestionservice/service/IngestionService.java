@@ -24,7 +24,12 @@ public class IngestionService {
                                 .timestamp(input.timestamp())
                                 .build();
 
-                kafkaTemplate.send("energy-usage", usageEvent);
+                kafkaTemplate.send("energy-usage", usageEvent)
+                                .whenComplete((result, ex) -> {
+                                        if (ex != null) {
+                                                log.error("Failed to publish energy usage event: {}", usageEvent, ex);
+                                        }
+                                });
                 log.info("Ingested energy Usage event : {}", usageEvent);
         }
 }

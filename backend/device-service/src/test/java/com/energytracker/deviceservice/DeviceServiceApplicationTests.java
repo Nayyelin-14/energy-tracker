@@ -30,12 +30,12 @@ class DeviceServiceApplicationTests {
 
 	@Test
 	void createDevices() {
-		List<String> userIds = jdbcTemplate.queryForList("""
+		List<Long> userIds = jdbcTemplate.queryForList("""
 				SELECT user_id
 				FROM users
 				WHERE email LIKE 'device.user%@energytracker.dev'
 				ORDER BY email
-				""", String.class);
+				""", Long.class);
 
 		assertThat(userIds)
 				.as("No seeded users found - run the userservice `createUsers` test first")

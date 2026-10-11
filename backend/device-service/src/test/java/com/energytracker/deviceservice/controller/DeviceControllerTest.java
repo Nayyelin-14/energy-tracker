@@ -34,13 +34,13 @@ class DeviceControllerTest {
          * The FK fk_device_user refuses any user_id that is not in users, so tests
          * must use a real one. Requires the userservice `createUsers` test to have run.
          */
-        private String anyExistingUserId() {
+        private Long anyExistingUserId() {
                 return jdbcTemplate.queryForObject("""
                                 SELECT user_id
                                 FROM users
                                 WHERE email LIKE 'device.user%@energytracker.dev'
                                 LIMIT 1
-                                """, String.class);
+                                """, Long.class);
         }
 
         @Test
@@ -60,7 +60,7 @@ class DeviceControllerTest {
 
         @Test
         void createDevice_whenValid_returns201WithLocation() throws Exception {
-                String userId = anyExistingUserId();
+                Long userId = anyExistingUserId();
 
                 mockMvc.perform(post(CREATE_PATH)
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -69,7 +69,7 @@ class DeviceControllerTest {
                                                   "name": "Living Room Light",
                                                   "type": "LIGHT",
                                                   "location": "Living Room",
-                                                  "userId": "%s"
+                                                  "userId": %s
                                                 }
                                                 """.formatted(userId)))
                                 .andExpect(status().isCreated())
@@ -90,7 +90,7 @@ class DeviceControllerTest {
                                                   "name": "Ghost Device",
                                                   "type": "LIGHT",
                                                   "location": "Nowhere",
-                                                  "userId": "this-user-does-not-exist"
+                                                  "userId": 999999999999
                                                 }
                                                 """))
                                 .andExpect(status().isConflict())
@@ -126,7 +126,7 @@ class DeviceControllerTest {
                                                   "name": "Lamp",
                                                   "type": "NOT_A_REAL_TYPE",
                                                   "location": "Bedroom",
-                                                  "userId": "e5b1a4d0-0000-4000-8000-000000000001"
+                                                  "userId": 123456789
                                                 }
                                                 """))
                                 .andExpect(status().isBadRequest())

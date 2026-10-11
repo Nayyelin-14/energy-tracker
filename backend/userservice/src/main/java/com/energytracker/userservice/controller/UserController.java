@@ -29,7 +29,7 @@ public class UserController {
         private final UserService userService;
 
         @GetMapping("/{userId}")
-        public ResponseEntity<UserDto> getUserProfile(@PathVariable String userId) {
+        public ResponseEntity<UserDto> getUserProfile(@PathVariable Long userId) {
 
                 UserDto userDto = userService.getUserById(userId);
                 if (userDto == null) {
@@ -45,7 +45,7 @@ public class UserController {
         }
 
         @PutMapping("/{userId}")
-        public ResponseEntity<UserDto> updateUser(@PathVariable String userId, @RequestBody UserDto userDto) {
+        public ResponseEntity<UserDto> updateUser(@PathVariable Long userId, @RequestBody UserDto userDto) {
                 try {
                         UserDto updatedUser = userService.updateUser(userId, userDto);
                         if (updatedUser == null) {
@@ -61,7 +61,7 @@ public class UserController {
         }
 
         @DeleteMapping("/{userId}")
-        public ResponseEntity<Void> deleteUser(@PathVariable String userId) {
+        public ResponseEntity<Void> deleteUser(@PathVariable Long userId) {
                 try {
                         userService.deleteUser(userId);
                         return new ResponseEntity<>(HttpStatus.NO_CONTENT);

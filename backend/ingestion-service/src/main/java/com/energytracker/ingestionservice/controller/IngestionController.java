@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.energytracker.ingestionservice.dto.EnergyUsageDto;
 import com.energytracker.ingestionservice.service.IngestionService;
 
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 
 @RestController
@@ -20,7 +21,7 @@ public class IngestionController {
 
         @PostMapping
         @ResponseStatus(org.springframework.http.HttpStatus.CREATED)
-        public void ingestData(@RequestBody EnergyUsageDto usageDto) {
+        public void ingestData(@Valid @RequestBody EnergyUsageDto usageDto) {
                 ingestionService.ingestEnergyUsage(usageDto);
         }
 }
