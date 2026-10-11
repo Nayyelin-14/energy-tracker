@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserDto {
-    private String userId;
+    private Long userId;
 
     @NotBlank(message = "Email is required")
     @Email(message = "Invalid email format")
@@ -33,9 +33,9 @@ public class UserDto {
     private String name;
 
     private String address;
-    private boolean alerting;
+    private Boolean alerting;
 
-    private double energyAlertingThreshold;
+    private Double energyAlertingThreshold;
 
 
     private LocalDateTime createdAt;

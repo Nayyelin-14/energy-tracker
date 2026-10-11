@@ -1,6 +1,7 @@
 package com.energytracker.deviceservice.controller;
 
 import java.net.URI;
+import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -26,6 +27,11 @@ public class DeviceController {
         private static final String RESOURCE_PATH = "/api/v1/device/";
 
         private final DeviceService deviceService;
+
+        @GetMapping
+        public ResponseEntity<List<DeviceDto>> getAllDevices() {
+                return ResponseEntity.ok(deviceService.getAllDevices());
+        }
 
         @GetMapping("/{deviceId}")
         public ResponseEntity<DeviceDto> getDeviceById(@PathVariable Long deviceId) {

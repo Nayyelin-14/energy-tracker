@@ -27,12 +27,12 @@ class UserControllerTest {
 
         @Test
         void deleteUser_whenUserStillOwnsDevices_returns409() throws Exception {
-                String userId = jdbcTemplate.queryForObject("""
+                Long userId = jdbcTemplate.queryForObject("""
                                 SELECT u.user_id
                                 FROM users u
                                 JOIN device d ON d.user_id = u.user_id
                                 LIMIT 1
-                                """, String.class);
+                                """, Long.class);
 
                 mockMvc.perform(delete(BASE_PATH + "/{userId}", userId))
                                 .andExpect(status().isConflict());
@@ -40,7 +40,7 @@ class UserControllerTest {
 
         @Test
         void deleteUser_whenUserDoesNotExist_returns404() throws Exception {
-                mockMvc.perform(delete(BASE_PATH + "/{userId}", "no-such-user"))
+                mockMvc.perform(delete(BASE_PATH + "/{userId}", 999_999_999L))
                                 .andExpect(status().isNotFound());
         }
 }

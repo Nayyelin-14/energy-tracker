@@ -11,10 +11,14 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
 server:
-  port: 8103
+  port: 8104
 
 simulation:
   interval-ms: 5000
-  endpoint: http://localhost:8103/api/v1/ingestion
+  endpoint: http://localhost:8104/api/v1/ingestion
   requests-per-interval: 1000
   parallel-threads: 10
+
+device:
+  service:
+    url: http://localhost:8101/api/v1/device

@@ -6,7 +6,7 @@ A Spring Boot 4 microservices project for monitoring household energy consumptio
 
 - User registration with unique-email enforcement, password confirmation, and BCrypt hashing
 - Input validation and consistent JSON error responses (`400`, `409`)
-- Per-request logging (`POST /api/users/register -> 409 (23 ms)`) and security response headers
+- Per-request logging (`POST /api/v1/user/register -> 409 (23 ms)`) and security response headers
 - Service skeletons with separate databases per service (MySQL, MongoDB)
 
 > **Status:** User Service (registration + profile) is implemented; Activity Service is a working skeleton. The architecture below shows the target design — remaining services are planned (dashed).
@@ -148,7 +148,7 @@ cd backend/activityservice
 **Register a user**
 
 ```bash
-curl -X POST http://localhost:8100/api/users/register \
+curl -X POST http://localhost:8100/api/v1/user/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "aung@example.com",
@@ -163,7 +163,7 @@ curl -X POST http://localhost:8100/api/users/register \
 
 ```json
 {
-  "userId": "3f8a7c2e-6f4b-4d1a-9c3e-2b1f0a5d7e91",
+  "userId": 7482910364527183920,
   "email": "aung@example.com",
   "firstName": "Aung",
   "lastName": "Kyaw",
@@ -183,7 +183,7 @@ Errors:
 **Get a profile**
 
 ```bash
-curl http://localhost:8100/api/users/<userId>
+curl http://localhost:8100/api/v1/user/<userId>
 ```
 
 `200 OK` with the same shape as above; `400` if the ID does not exist.
