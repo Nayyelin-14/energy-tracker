@@ -1,0 +1,143 @@
+@import "tailwindcss";
+
+/*
+ * Energy Tracker design system — "calibrated instrument"
+ * Warm graphite surfaces, hairline structure, one emerald signal color.
+ * Numbers live in JetBrains Mono with tabular figures; prose lives in Plus Jakarta Sans.
+ */
+
+:root {
+  color-scheme: dark;
+
+  /* Surfaces — warm-neutral graphite, never pure black or blue-navy */
+  --bg: #0e1013;
+  --surface-0: #131519; /* page panels */
+  --surface-1: #181b21; /* cards */
+  --surface-2: #1e222a; /* raised / inputs / active rows */
+  --surface-3: #252a33; /* hover */
+  --border: #262b34;
+  --border-strong: #333945;
+
+  /* Text */
+  --text: #e8eaef;
+  --text-secondary: #a6adba;
+  --text-muted: #6d7585;
+
+  /* Signals */
+  --accent: #10b981; /* emerald — nominal / primary action */
+  --accent-soft: rgba(16, 185, 129, 0.12);
+  --accent-text: #34d399;
+  --warning: #f59e0b; /* amber — peaks, thresholds */
+  --warning-soft: rgba(245, 158, 11, 0.12);
+  --warning-text: #fbbf24;
+  --critical: #f43f5e; /* rose — violations, faults */
+  --critical-soft: rgba(244, 63, 94, 0.12);
+  --critical-text: #fb7185;
+  --info: #38bdf8; /* sky — links, neutral telemetry */
+  --info-soft: rgba(56, 189, 248, 0.1);
+
+  /* Radii — slightly softer than mock hardware corners */
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-lg: 12px;
+
+  /* Type */
+  --font-sans: var(--font-plus-jakarta), "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), "JetBrains Mono", ui-monospace, monospace;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface-0: var(--surface-0);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-text: var(--accent-text);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-text: var(--warning-text);
+  --color-critical: var(--critical);
+  --color-critical-soft: var(--critical-soft);
+  --color-critical-text: var(--critical-text);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --radius-sm: var(--radius-sm);
+  --radius: var(--radius);
+  --radius-lg: var(--radius-lg);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-feature-settings: "cv11"; /* better a, g forms in Plus Jakarta */
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+/* All numeric readouts use tabular figures so live values never jitter */
+.tabular {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Small-caps style overline used above stat values */
+.overline {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Hairline panel — layering comes from borders, not shadows */
+.panel {
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.panel-raised {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.03);
+}
+
+/* Thin custom scrollbars to keep dense tables calm */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+::selection {
+  background: rgba(16, 185, 129, 0.28);
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fade-in-up 0.25s ease-out both;
+}
