@@ -128,8 +128,19 @@ Configuration lives in each service's `src/main/resources/application.yaml`. Ove
 | `SPRING_DATASOURCE_PASSWORD` | Database password       | User Service    |
 | `SPRING_DATA_MONGODB_URI`    | MongoDB connection URI  | Activity Service|
 | `SERVER_PORT`                | HTTP port (8100 / 8101)| Each service    |
+| `GEMINI_API_KEY`             | Google Gemini API key   | Insight Service |
+| `GROQ_API_KEY`               | Groq API key            | Insight Service |
+| `GEMINI_MODEL` / `GROQ_MODEL` | Default model overrides | Insight Service |
+| `REDIS_URL`                  | Upstash Redis (`rediss://`) for the insight cache | Insight Service |
 
-> Don't commit real credentials — supply secrets via environment variables.
+**Insight Service `.env` file:** secrets live in the gitignored `.env` file at the
+repository root (copy `.env.example` and fill in your keys). The service loads it
+automatically at startup — no `source` needed — whether you run it from the
+repository root or from `backend/insight-service`. Real environment variables
+(shell, CI, Docker) always override `.env`, and `ENERGY_TRACKER_ENV_FILE` can point
+to an alternative file. Variable values are never logged.
+
+> Don't commit real credentials — supply secrets via environment variables or the gitignored `.env`.
 
 ### Start the services
 
@@ -140,6 +151,10 @@ cd backend/userservice
 
 # Activity Service → http://localhost:8101
 cd backend/activityservice
+./mvnw spring-boot:run
+
+# Insight Service → http://localhost:8105 (loads the root .env automatically)
+cd backend/insight-service
 ./mvnw spring-boot:run
 ```
 
@@ -187,6 +202,35 @@ curl http://localhost:8100/api/v1/user/<userId>
 ```
 
 `200 OK` with the same shape as above; `400` if the ID does not exist.
+
+### Insight service: streaming, limits & security
+
+**SSE endpoint** (same provider/model/days params as the JSON endpoint; defaults
+to Groq unless `?provider=&model=` are given):
+
+```bash
+curl -N http://localhost:8105/api/v1/insight/saving-tips/stream/<userId>
+```
+
+Protocol: `meta` → one or more `text` deltas → optional `usage` → exactly one
+terminal event (`done` or `error`), then close. Cache hits replay as
+`meta{cached:true}` + one `text` + `done` (~0.1 s). Failures before the first
+token stay plain JSON errors (`429`/`503`/`504`); mid-stream failures emit an
+`error` event with `"partial": true/false`.
+
+**Concurrency & limits** (all configurable under `insight.*` in
+`application.yaml`): 11 s full-lifecycle server deadline (504 on breach), 8
+concurrent AI generations (503 + `Retry-After` when saturated), single-flight
+per cache key (concurrent identical requests share one upstream stream), and
+per-user miss rate limits of 1 generation / 10 s and 20 / hour (429 +
+`Retry-After`; cache hits consume no quota).
+
+**Security note — production release blocker:** the service has no
+authentication and trusts the `userId` path parameter, so any caller can read
+any user's insights and spend the shared AI quota. It also binds all network
+interfaces (no `server.address` set). This is acceptable for local development
+only; before any real deployment put it behind an authenticated gateway that
+injects/validates the user identity.
 
 ---
 

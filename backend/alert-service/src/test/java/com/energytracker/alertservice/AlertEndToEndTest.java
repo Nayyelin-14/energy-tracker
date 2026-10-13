@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +30,8 @@ class AlertEndToEndTest {
 
         @Test
         void alertEventIsPersistedAndEmailSent() throws Exception {
-                // same producer setup as usage-service (JsonSerializer adds the __TypeId__ header)
+                // same producer setup as usage-service (JsonSerializer adds the __TypeId__
+                // header)
                 final Map<String, Object> producerProps = Map.of(
                                 ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9094",
                                 ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,

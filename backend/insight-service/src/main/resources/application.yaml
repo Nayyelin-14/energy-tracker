@@ -1,0 +1,110 @@
+spring:
+  application:
+    name: insight-service
+
+  ai:
+    # spring.ai.model.chat is intentionally left unset so BOTH provider
+    # autoconfigurations stay enabled (Gemini + Groq/OpenAI-compatible).
+    # The auto-configured ChatClient.Builder can only resolve a single ChatModel,
+    # so it is disabled and InsightProviderRegistry resolves providers directly.
+    chat:
+      client:
+        enabled: false
+    # Spring AI defaults to 10 retry attempts with up to ~3 minutes of backoff.
+    # That would blow far past the server deadline, so a failed call must fail
+    # once, immediately (Spring AI never retries 429s anyway).
+    retry:
+      max-attempts: 1
+    google:
+      genai:
+        api-key: ${GEMINI_API_KEY:}
+        chat:
+          options:
+            # Required: the Gemini ChatModel asserts a non-null default model.
+            model: ${GEMINI_MODEL:gemini-3.8-flash}
+    openai:
+      base-url: ${GROQ_BASE_URL:https://api.groq.com/openai/v1}
+      api-key: ${GROQ_API_KEY:}
+      chat:
+        options:
+          model: ${GROQ_MODEL:openai/gpt-oss-120b}
+
+  data:
+    redis:
+      # Upstash connection from the root .env (rediss:// with auth in the URL).
+      # Falls back to a local Redis so the service still boots when unset;
+      # cache misses then degrade gracefully instead of failing requests.
+      url: ${REDIS_URL:redis://localhost:6379}
+      # Both bounds must stay well under the 11s server budget so a dead or
+      # slow Redis degrades to a cache miss instead of eating the deadline.
+      connect-timeout: 500ms
+      timeout: 400ms
+
+server:
+  port: 8105
+
+usage:
+  service:
+    url: ${USAGE_SERVICE_URL:http://localhost:8103/api/v1/usage}
+    connect-timeout-ms: 1200
+    read-timeout-ms: 1200
+
+insight:
+  # Full-lifecycle server deadline. Client-side AI HTTP timeouts are derived
+  # from client-timeout-ms (see AiClientTimeoutConfig); watchdogs in the
+  # generation coordinator use first-token-timeout-ms and slot-wait-ms.
+  deadline:
+    server-budget-ms: 11000
+    first-token-timeout-ms: 6500
+    slot-wait-ms: 300
+  # Per-user miss throttling (cache hits never consume quota).
+  rate-limit:
+    window-seconds: 10
+    window-max: 1
+    hourly-max: 20
+  ai:
+    max-concurrent: 8
+    # HTTP request timeout applied to both AI SDK clients.
+    client-timeout-ms: 11000
+  max-days: 90
+  default-days: 3
+  # Groq is the default after live verification on 2026-10-13: all three
+  # catalog models answered in 0.34-0.70s with a 1000-request/8000-token
+  # window; Gemini's free tier allows ~20 requests/day and was exhausted
+  # during testing. Provider/model are still explicit per request; there is
+  # no automatic fallback.
+  default-provider: ${INSIGHT_DEFAULT_PROVIDER:groq}
+  default-model: ${INSIGHT_DEFAULT_MODEL:openai/gpt-oss-120b}
+  prompt:
+    max-devices: 10
+  # Runtime ChatOptions replace the spring.ai.* defaults per request,
+  # so generation settings are owned here.
+  generation:
+    temperature: 0.3
+    # Thinking is disabled (see InsightProviderRegistry.buildOptions) but the
+    # simulated model still burns ~900 tokens on thoughts; the cap must leave
+    # room for thoughts plus the answer or responses are truncated.
+    max-output-tokens: 4096
+  cache:
+    ttl-minutes: 15
+  # Catalog shown by GET /api/v1/insight/providers.
+  # A provider is only exposed when it is enabled AND its API key is configured.
+  providers:
+    gemini:
+      enabled: true
+      display-name: Google Gemini
+      models:
+        - id: gemini-3.8-flash
+          display-name: Gemini 3.8 Flash
+        - id: gemini-flash-latest
+          display-name: Gemini Flash (latest)
+    groq:
+      enabled: true
+      display-name: Groq
+      models:
+        - id: openai/gpt-oss-120b
+          display-name: GPT-OSS 120B
+        - id: qwen/qwen3.8-27b
+          display-name: Qwen3 27B
+        - id: openai/gpt-oss-20b
+          display-name: GPT-OSS 20B
