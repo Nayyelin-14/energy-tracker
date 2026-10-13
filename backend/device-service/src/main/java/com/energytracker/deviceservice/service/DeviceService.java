@@ -98,7 +98,6 @@ public class DeviceService {
                 return mapToDto(updatedDevice);
         }
 
-
         public void deleteDevice(Long deviceId) {
                 if (deviceId == null) {
                         throw new IllegalArgumentException("Device ID must be provided");
@@ -161,6 +160,18 @@ public class DeviceService {
                         }
                 }
                 return false;
+        }
+
+        public List<DeviceDto> getAllDevicesByUserId(Long userId) {
+                if (userId == null) {
+                        throw new IllegalArgumentException("User ID must be provided");
+                }
+
+                List<Device> devices = deviceRepository.findAllByUserId(userId);
+
+                return devices.stream()
+                                .map(this::mapToDto)
+                                .toList();
         }
 
         private DeviceDto mapToDto(Device device) {
