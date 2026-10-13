@@ -2,11 +2,11 @@ spring:
   application:
     name: device-service
 
-  # --- MySQL (local, Windows host) ---
+  # --- MySQL ---
   datasource:
-    url: jdbc:mysql://172.30.32.1:3306/home_energy_tracker?sslMode=DISABLED&allowPublicKeyRetrieval=true
-    username: energy_app
-    password: EnergyApp_2026_Strong!
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:home_energy_tracker}?sslMode=DISABLED&allowPublicKeyRetrieval=true
+    username: ${MYSQL_USER:energy_app}
+    password: ${MYSQL_PASSWORD:EnergyApp_2026_Strong!}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   # --- JPA / Hibernate ---

@@ -44,6 +44,10 @@ public class User {
 
     private double energyAlertingThreshold;
 
+    @Builder.Default
+    @Column(name = "demo", nullable = false)
+    private boolean demo = false;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 

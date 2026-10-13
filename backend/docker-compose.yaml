@@ -1,4 +1,24 @@
 services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-home_energy_tracker}
+      MYSQL_USER: ${MYSQL_USER:-energy_app}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-EnergyApp_2026_Strong!}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-rootpassword}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
   kafka:
     image: apache/kafka:latest
     container_name: kafka
@@ -67,6 +87,7 @@ services:
       - "1025:1025" #smtp (spring send email to smtp)
 
 volumes:
+  mysql_data:
   kafka_data:
   influxdb_data:
 

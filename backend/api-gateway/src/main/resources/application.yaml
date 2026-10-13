@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: api-gateway
+
+server:
+  port: 9000
+
+management:
+  health:
+    circuitbreakers:
+      enabled: true
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,circuitbreakers
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        register-health-indicator: true
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 8
+        minimum-number-of-calls: 4
+        failure-rate-threshold: 20
+        wait-duration-in-open-state: 5s
+        permitted-number-of-calls-in-half-open-state: 2
+        automatic-transition-from-open-to-half-open-enabled: true
+        slow-call-duration-threshold: 2s
+        slow-call-rate-threshold: 50
+    instances:
+      user-service:
+        base-config: default
+      device-service:
+        base-config: default
+      usage-service:
+        base-config: default
+      ingestion-service:
+        base-config: default
+      insight-service:
+        base-config: default

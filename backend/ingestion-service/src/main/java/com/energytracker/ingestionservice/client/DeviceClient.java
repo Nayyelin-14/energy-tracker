@@ -41,4 +41,22 @@ public class DeviceClient {
                                 .filter(Objects::nonNull)
                                 .toList();
         }
+
+        public List<DeviceDto> getAllDevicesForUser(Long userId) {
+                String url = baseUrl + "/user/" + userId;
+                ResponseEntity<List<DeviceDto>> response = restTemplate.exchange(
+                                url,
+                                HttpMethod.GET,
+                                null,
+                                new ParameterizedTypeReference<List<DeviceDto>>() {
+                                });
+                List<DeviceDto> body = response.getBody();
+                return body == null ? List.of() : body;
+        }
+
+        public DeviceDto getDeviceById(Long deviceId) {
+                String url = baseUrl + "/" + deviceId;
+                ResponseEntity<DeviceDto> response = restTemplate.getForEntity(url, DeviceDto.class);
+                return response.getBody();
+        }
 }

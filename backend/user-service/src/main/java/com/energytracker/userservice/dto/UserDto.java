@@ -37,6 +37,7 @@ public class UserDto {
 
     private Double energyAlertingThreshold;
 
+    private Boolean demo;
 
     private LocalDateTime createdAt;
 
