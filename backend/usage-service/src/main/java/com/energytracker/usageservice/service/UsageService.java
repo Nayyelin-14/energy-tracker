@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -24,8 +25,11 @@ import com.energytracker.kafka.event.EnergyUsageEvent;
 import com.energytracker.usageservice.client.DeviceClient;
 import com.energytracker.usageservice.client.UserClient;
 import com.energytracker.usageservice.dto.DeviceDto;
+import com.energytracker.usageservice.dto.DeviceSeriesDto;
+import com.energytracker.usageservice.dto.EnergyPointDto;
 import com.energytracker.usageservice.dto.UsageCoverageDto;
 import com.energytracker.usageservice.dto.UsageDto;
+import com.energytracker.usageservice.dto.UsageSeriesDto;
 import com.energytracker.usageservice.dto.UserDto;
 import com.energytracker.usageservice.model.Device;
 import com.energytracker.usageservice.model.DeviceEnergy;
@@ -47,6 +51,13 @@ public class UsageService {
         private final UserClient userClient;
 
         private final KafkaTemplate<String, AlertingEvent> kafkaTemplate;
+
+        /**
+         * Tracks which users currently have an active threshold violation.
+         * Used to alert only on the below→above transition, not on every
+         * scheduled execution during a sustained violation.
+         */
+        private final Map<Long, Boolean> userBreachState = new ConcurrentHashMap<>();
 
         @Value("${influx.org}")
         private String influxOrg;
@@ -184,43 +195,49 @@ public class UsageService {
                         }
                 }
 
-                // check treasholds against aggregated usage
-                // alertedUsers = [101, 102, 103] take the users
+                // check thresholds against aggregated usage
                 final List<Long> alertedUsers = new ArrayList<>(userthresholdMap.keySet());
                 for (final Long userId : alertedUsers) {
                         final Double threshold = userthresholdMap.get(userId);
-
-                        // devices = [
-                        // DeviceEnergy(deviceId=1, energyConsumed=5.0, userId=101),
-                        // DeviceEnergy(deviceId=2, energyConsumed=3.0, userId=101)
-                        // ]
                         final List<DeviceEnergy> devices = userDeviceEnergyMap.get(userId);
 
                         final Double totalConsumption = devices.stream().mapToDouble(DeviceEnergy::getEnergyConsumed)
                                         .sum();
 
-                        if (totalConsumption > threshold) {
+                        final boolean aboveThreshold = totalConsumption > threshold;
+                        final boolean wasAboveThreshold = userBreachState.getOrDefault(userId, false);
 
-                                log.info("ALERT : USER ID {} has exceeded the energy threshold! ", +userId,
-                                                totalConsumption, threshold);
+                        if (aboveThreshold && !wasAboveThreshold) {
+                                // Transition below→above: alert fires exactly once per violation
+                                userBreachState.put(userId, true);
 
-                                // put messgae (send event) on kafka alert-topic as a producer
-                                final AlertingEvent alertingEvent = AlertingEvent.builder()
-                                                .userId(userId)
-                                                .message("Energy consumption threshold exceeded")
-                                                .threshold(threshold)
-                                                .energyConsumed(totalConsumption)
-                                                .email(userEmailMap.get(userId))
-                                                .build();
+                                if (Boolean.TRUE.equals(userAlertingMap.get(userId))) {
+                                        log.info("ALERT: User {} exceeded threshold. Consumed={}, Threshold={}",
+                                                        userId, totalConsumption, threshold);
 
-                                // send alrt event to kafka topic
+                                        final AlertingEvent alertingEvent = AlertingEvent.builder()
+                                                        .userId(userId)
+                                                        .message("Energy consumption threshold exceeded")
+                                                        .threshold(threshold)
+                                                        .energyConsumed(totalConsumption)
+                                                        .email(userEmailMap.get(userId))
+                                                        .build();
 
-                                kafkaTemplate.send("energy-alerts", alertingEvent);
-
+                                        kafkaTemplate.send("energy-alerts", alertingEvent);
+                                } else {
+                                        log.info("User {} exceeded threshold but alerting is disabled", userId);
+                                }
+                        } else if (!aboveThreshold && wasAboveThreshold) {
+                                // Consumption returned below threshold: re-arm for next crossing
+                                userBreachState.put(userId, false);
+                                log.info("User {} is back within threshold. Re-armed alert.", userId);
+                        } else if (aboveThreshold) {
+                                // Still above threshold (sustained violation): no new alert
+                                log.debug("User {} still above threshold, suppressing duplicate alert. Consumed={}",
+                                                userId, totalConsumption);
                         } else {
-                                log.info("User ID {} is within the energy threshold. "
-                                                + "Total Consumption: {} , Threshold : {}", userId, totalConsumption,
-                                                threshold);
+                                log.info("User {} is within the energy threshold. Consumed={}, Threshold={}",
+                                                userId, totalConsumption, threshold);
                         }
                 }
         }
@@ -366,6 +383,125 @@ public class UsageService {
                 return UsageDto.builder()
                                 .userId(userId)
                                 .devices(resultDevices)
+                                .build();
+        }
+
+        /**
+         * Returns per-device energy consumption time series bucketed by hour or day.
+         *
+         * <p>
+         * {@code interval} is {@code "hour"} or {@code "day"}. Hourly series are capped
+         * at 7 days (168 buckets/device); daily series at 90 days — beyond that the
+         * response grows large enough to hurt the demo UX.
+         */
+        public UsageSeriesDto getUsageSeries(Long userId, int days, String interval) {
+                final String every;
+                final int effectiveDays;
+                if ("hour".equalsIgnoreCase(interval)) {
+                        every = "1h";
+                        effectiveDays = Math.min(days, 7);
+                } else {
+                        every = "1d";
+                        effectiveDays = Math.min(days, 90);
+                }
+
+                final List<DeviceDto> devicesDto = deviceClient.getAllDevicesForUser(userId);
+                if (devicesDto == null || devicesDto.isEmpty()) {
+                        return UsageSeriesDto.builder()
+                                        .userId(userId)
+                                        .interval(interval.toLowerCase())
+                                        .days(effectiveDays)
+                                        .devices(List.of())
+                                        .build();
+                }
+
+                final List<Long> deviceIds = devicesDto.stream()
+                                .map(DeviceDto::deviceId)
+                                .filter(Objects::nonNull)
+                                .toList();
+                if (deviceIds.isEmpty()) {
+                        return UsageSeriesDto.builder()
+                                        .userId(userId)
+                                        .interval(interval.toLowerCase())
+                                        .days(effectiveDays)
+                                        .devices(List.of())
+                                        .build();
+                }
+
+                final Instant now = Instant.now();
+                final Instant start = now.minus(effectiveDays, ChronoUnit.DAYS);
+                final String deviceFilter = buildDeviceFilter(deviceIds);
+
+                final String fluxQuery = String.format("""
+                                from(bucket: "%s")
+                                  |> range(start: time(v: "%s"), stop: time(v: "%s"))
+                                  |> filter(fn: (r) => r["_measurement"] == "energy-usage")
+                                  |> filter(fn: (r) => r["_field"] == "energyConsumed")
+                                  |> filter(fn: (r) => %s)
+                                  |> group(columns: ["deviceId"])
+                                  |> aggregateWindow(every: %s, fn: sum, createEmpty: false, timeSrc: "_start")
+                                """,
+                                influxBucket, start.toString(), now.toString(), deviceFilter, every);
+
+                // deviceId -> (bucket time -> summed energy), LinkedHashMap keeps time order
+                final Map<Long, Map<Instant, Double>> seriesMap = new HashMap<>();
+
+                try {
+                        final QueryApi queryApi = influxDBClient.getQueryApi();
+                        final List<FluxTable> tables = queryApi.query(fluxQuery, influxOrg);
+
+                        for (FluxTable table : tables) {
+                                for (FluxRecord record : table.getRecords()) {
+                                        final Long deviceId = parseDeviceId(
+                                                        record.getValueByKey("deviceId") == null
+                                                                        ? null
+                                                                        : record.getValueByKey("deviceId").toString());
+                                        final Object value = record.getValueByKey("_value");
+                                        if (deviceId == null || !(value instanceof Number)) {
+                                                continue;
+                                        }
+                                        final Instant bucketTime = record.getTime();
+                                        if (bucketTime == null) {
+                                                continue;
+                                        }
+                                        seriesMap.computeIfAbsent(deviceId, k -> new java.util.TreeMap<>())
+                                                        .put(bucketTime,
+                                                                        ((Number) value).doubleValue());
+                                }
+                        }
+                } catch (Exception e) {
+                        log.error("Failed to query InfluxDB series for user {} over {} days ({}): {}",
+                                        userId, effectiveDays, every, e.getMessage());
+                        return UsageSeriesDto.builder()
+                                        .userId(userId)
+                                        .interval(every.equals("1h") ? "hour" : "day")
+                                        .days(effectiveDays)
+                                        .devices(List.of())
+                                        .build();
+                }
+
+                final List<DeviceSeriesDto> devices = devicesDto.stream()
+                                .map(d -> DeviceSeriesDto.builder()
+                                                .deviceId(d.deviceId())
+                                                .name(d.name())
+                                                .type(d.type())
+                                                .location(d.location())
+                                                .points(seriesMap
+                                                                .getOrDefault(d.deviceId(), Map.of())
+                                                                .entrySet().stream()
+                                                                .map(e -> EnergyPointDto.builder()
+                                                                                .time(e.getKey())
+                                                                                .energyConsumed(e.getValue())
+                                                                                .build())
+                                                                .toList())
+                                                .build())
+                                .toList();
+
+                return UsageSeriesDto.builder()
+                                .userId(userId)
+                                .interval(every.equals("1h") ? "hour" : "day")
+                                .days(effectiveDays)
+                                .devices(devices)
                                 .build();
         }
 

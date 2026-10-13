@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.energytracker.usageservice.dto.UsageCoverageDto;
 import com.energytracker.usageservice.dto.UsageDto;
+import com.energytracker.usageservice.dto.UsageSeriesDto;
 import com.energytracker.usageservice.service.UsageService;
 
 import lombok.AllArgsConstructor;
@@ -32,6 +33,19 @@ public class UsageController {
         public ResponseEntity<UsageCoverageDto> getUserDataCoverage(@PathVariable Long userId) {
                 final UsageCoverageDto coverage = usageService.getCoverage(userId);
                 return ResponseEntity.ok(coverage);
+        }
+
+        @GetMapping("/{userId}/series")
+        public ResponseEntity<UsageSeriesDto> getUserUsageSeries(
+                        @PathVariable Long userId,
+                        @RequestParam(defaultValue = "7") int days,
+                        @RequestParam(defaultValue = "hour") String interval) {
+
+                if (!"hour".equalsIgnoreCase(interval) && !"day".equalsIgnoreCase(interval)) {
+                        return ResponseEntity.badRequest().build();
+                }
+                final UsageSeriesDto series = usageService.getUsageSeries(userId, days, interval);
+                return ResponseEntity.ok(series);
         }
 
 }

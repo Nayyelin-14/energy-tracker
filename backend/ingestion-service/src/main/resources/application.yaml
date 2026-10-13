@@ -22,3 +22,22 @@ simulation:
 device:
   service:
     url: http://localhost:8101/api/v1/device
+
+user:
+  service:
+    url: http://localhost:8100/api/v1/user
+
+influx:
+  url: http://localhost:8072
+  token: my-token
+  org: nay
+  bucket: usage-bucket
+
+demo:
+  seed:
+    enabled: true
+    email: demo@energytracker.dev
+    password: Demo123!
+    name: Demo User
+    threshold: 500.0
+    alerting: true

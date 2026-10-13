@@ -46,6 +46,7 @@ public class UserService {
                     .alerting(Boolean.TRUE.equals(input.getAlerting()))
                     .energyAlertingThreshold(
                             input.getEnergyAlertingThreshold() != null ? input.getEnergyAlertingThreshold() : 0.0)
+                    .demo(Boolean.TRUE.equals(input.getDemo()))
                     .password(passwordEncoder.encode(input.getPassword()))
                     .build();
 
@@ -55,6 +56,18 @@ public class UserService {
 
     public UserDto getUserById(Long userId) {
          return  userRepository.findById(userId)
+            .map(this::toDto)
+            .orElse(null);
+    }
+
+    public UserDto getDemoUser() {
+        return userRepository.findFirstByDemoTrue()
+            .map(this::toDto)
+            .orElse(null);
+    }
+
+    public UserDto getUserByEmail(String email) {
+        return userRepository.findByEmail(email)
             .map(this::toDto)
             .orElse(null);
     }
@@ -86,7 +99,15 @@ public class UserService {
             existing.setAlerting(input.getAlerting());
         }
         if (input.getEnergyAlertingThreshold() != null) {
-            existing.setEnergyAlertingThreshold(input.getEnergyAlertingThreshold());
+            final double threshold = input.getEnergyAlertingThreshold();
+            if (Double.isNaN(threshold) || Double.isInfinite(threshold) || threshold < 0) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "energyAlertingThreshold must be a non-negative number");
+            }
+            existing.setEnergyAlertingThreshold(threshold);
+        }
+        if (input.getDemo() != null) {
+            existing.setDemo(input.getDemo());
         }
 
         return toDto(userRepository.save(existing));
@@ -158,6 +179,7 @@ public class UserService {
                 .address(user.getAddress())
                 .alerting(user.isAlerting())
                 .energyAlertingThreshold(user.getEnergyAlertingThreshold())
+                .demo(user.isDemo())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();

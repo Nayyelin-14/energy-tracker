@@ -38,6 +38,24 @@ public class UserController {
                 return ResponseEntity.ok(userDto);
         }
 
+        @GetMapping("/demo")
+        public ResponseEntity<UserDto> getDemoUser() {
+                UserDto demoUser = userService.getDemoUser();
+                if (demoUser == null) {
+                        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+                }
+                return ResponseEntity.ok(demoUser);
+        }
+
+        @GetMapping("/email/{email}")
+        public ResponseEntity<UserDto> getUserByEmail(@PathVariable String email) {
+                UserDto userDto = userService.getUserByEmail(email);
+                if (userDto == null) {
+                        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+                }
+                return ResponseEntity.ok(userDto);
+        }
+
         @PostMapping("/register")
         public ResponseEntity<UserDto> createUser(@Valid @RequestBody UserDto UserDto) {
                 UserDto createdUser = userService.createUser(UserDto);
